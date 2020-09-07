@@ -15,11 +15,39 @@
 #define key_left 75
 #define key_down 80
 
-#define piece_size 4
+#define piece_size_big 4
+#define piece_size_small 3
 
 int playing_field[field_height][field_width];
 
-int tetromino_shapes[7][piece_size][piece_size] = {
+int tetromino3_shapes[5][piece_size_small][piece_size_small] = {
+    {
+        {0,3,3},
+        {0,3,0},
+        {0,3,0},
+    },
+    {
+        {4,4,0},
+        {0,4,0},
+        {0,4,0},
+    },
+    {
+        {0,5,0},
+        {5,5,0},
+        {0,5,0},
+    },
+    {
+        {0,6,0},
+        {6,6,0},
+        {6,0,0},
+    },
+    {
+        {0,7,0},
+        {0,7,7},
+        {0,0,7},
+    },
+};
+int tetromino4_shapes[2][piece_size_big][piece_size_big] = {
     {
         {0, 0, 1, 0},
         {0, 0, 1, 0},
@@ -27,46 +55,18 @@ int tetromino_shapes[7][piece_size][piece_size] = {
         {0, 0, 1, 0},
     },
     {
+        {0, 0, 0, 0},
         {0, 2, 2, 0},
-        {0, 2, 0, 0},
-        {0, 2, 0, 0},
-        {0, 0, 0, 0},
-    },
-    {
-        {0, 3, 3, 0},
-        {0, 0, 3, 0},
-        {0, 0, 3, 0},
-        {0, 0, 0, 0},
-    },
-    {
-        {0, 0, 4, 0},
-        {0, 4, 4, 0},
-        {0, 0, 4, 0},
-        {0, 0, 0, 0},
-    },
-    {
-        {0, 0, 5, 0},
-        {0, 5, 5, 0},
-        {0, 5, 0, 0},
-        {0, 0, 0, 0},
-    },
-    {
-        {0, 6, 0, 0},
-        {0, 6, 6, 0},
-        {0, 0, 6, 0},
-        {0, 0, 0, 0},
-    },
-    {
-        {0, 0, 0, 0},
-        {0, 7, 7, 0},
-        {0, 7, 7, 0},
+        {0, 2, 2, 0},
         {0, 0, 0, 0},
     },
 };
 
 // Tetromino definitions
 struct tetromino {
-    int shape[4][4];
+    int shape4[4][4];
+    int shape3[3][3];
+    int size;
     int rotation;
     int ypos;
     int xpos;
@@ -76,14 +76,26 @@ typedef struct tetromino Tetromino;
 // Tetromino constructor
 Tetromino* new_Tetromino() {
     Tetromino* t = malloc(sizeof(Tetromino));
-    t->rotation = 0;
+    t->rotation = rand() % 4;
     t->ypos = 0;
-    t->xpos = field_width / 2;
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            t->shape[i][j] = tetromino_shapes[2][i][j];
+    t->xpos = field_width / 2 - 1;
+    int shape_num = rand() % 7 + 1;
+    t->size = (shape_num == 1 || shape_num == 2) ? piece_size_big : piece_size_small;
+    if (t->size == 3) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                t->shape3[i][j] = tetromino3_shapes[shape_num - 3][i][j];
+            }
         }
     }
+    else {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                t->shape4[i][j] = tetromino4_shapes[shape_num - 1][i][j];
+            }
+        }
+    }
+    return t;
 }
 
 // Returns the block (0 or 1-7) at the specified location when taking rotation into account.
@@ -91,16 +103,34 @@ int rotated_block(Tetromino* piece, int y, int x) {
     int sum;
     switch (piece->rotation % 4) {
         case 0:
-            return piece->shape[y][x];
+            return piece->size == 4 ? piece->shape4[y][x] : piece->shape3[y][x];
         case 1:
-            sum = y + 12 - 4*x;
-            return piece->shape[sum / 4][sum % 4];
+            if (piece->size == 4) {
+                sum = y + 12 - 4*x;
+                return piece->shape4[sum / 4][sum % 4];
+            }
+            else {
+                sum = y + 6 - 3*x;
+                return piece->shape3[sum / 3][sum % 3];
+            }
         case 2:
-            sum = 15 - (4*y + x);
-            return piece->shape[sum / 4][sum % 4];
+            if (piece->size == 4) {
+                sum = 15 - (4*y + x);
+                return piece->shape4[sum / 4][sum % 4];
+            }
+            else {
+                sum = 8 - (3*y + x);
+                return piece->shape3[sum / 3][sum % 3];
+            }
         case 3:
-            sum = 15 - (y + 12 - 4*x);
-            return piece->shape[sum / 4][sum % 4];
+            if (piece->size == 4) {
+                sum = 15 - (y + 12 - 4*x);
+                return piece->shape4[sum / 4][sum % 4];
+            }
+            else {
+                sum = 8 - (y + 6 - 3*x);
+                return piece->shape3[sum / 3][sum % 3];
+            }
     }
 }
 
@@ -115,8 +145,9 @@ void draw_console(Tetromino* piece) {
     }
 
     int to_draw;
-    for (int i = 0; i < piece_size; i++) {
-        for (int j = 0; j < piece_size; j++) {
+    int size = piece->size;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
             to_draw = rotated_block(piece, i, j);
             if (to_draw != 0) mvaddch(offset_y + piece->ypos + i, offset_x + piece->xpos + j, symbols[ to_draw ]);
         }
@@ -129,13 +160,14 @@ bool piece_fits(Tetromino* piece, bool rotated) {
     int xpos = piece->xpos;
     int shape_block; // The value of the shape array of the piece
     int field_block; // The value of the playing_field array
+    int size = piece->size;
 
     // When rotated and the piece collided only with the border,
     // we allow it to rotate but move it so that it's not inside the border if we can.
     if (rotated) {
         int collided_with_border = -1; // -1: didn't collide with the border, 0: left wall, 1: floor, 2: right wall
-        for (int i = ypos; i < ypos + piece_size; i++) {
-            for (int j = xpos; j < xpos + piece_size; j++) {
+        for (int i = ypos; i < ypos + size; i++) {
+            for (int j = xpos; j < xpos + size; j++) {
                 // Take rotation into account
                 shape_block = rotated_block(piece, i - ypos, j - xpos);
                 field_block = playing_field[i][j];
@@ -187,8 +219,8 @@ bool piece_fits(Tetromino* piece, bool rotated) {
         }
     }
     else {
-        for (int i = ypos; i < ypos + piece_size; i++) {
-            for (int j = xpos; j < xpos + piece_size; j++) {
+        for (int i = ypos; i < ypos + size; i++) {
+            for (int j = xpos; j < xpos + size; j++) {
                 shape_block = rotated_block(piece, i - ypos, j - xpos);
                 field_block = playing_field[i][j];
 
