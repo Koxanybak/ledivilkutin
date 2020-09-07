@@ -8,8 +8,8 @@
 #define field_width 14
 #define field_height 21
 
-#define offset_y 5
-#define offset_x 5
+#define offset_y 5 // Amount of space away from the console borders
+#define offset_x 5 // Amount of space away from the console borders
 
 #define key_right 77
 #define key_left 75
@@ -72,6 +72,8 @@ struct tetromino {
     int xpos;
 };
 typedef struct tetromino Tetromino;
+
+// Tetromino constructor
 Tetromino* new_Tetromino() {
     Tetromino* t = malloc(sizeof(Tetromino));
     t->rotation = 0;
@@ -102,12 +104,13 @@ int rotated_block(Tetromino* piece, int y, int x) {
     }
 }
 
-void draw_console(int f[field_height][field_width], Tetromino* piece) {
+// Draws the playing field and the piece given as parameter to the console.
+void draw_console(Tetromino* piece) {
     char symbols[] = " ABCDEFG#"; // The values to be drawn. For example, value 3 get converted to symbols[3] --> C
 
     for (int i = 0; i < field_height; i++) {
         for (int j = 0; j < field_width; j++) {
-            mvaddch(offset_y + i, offset_x + j, symbols[ f[i][j] ]);
+            mvaddch(offset_y + i, offset_x + j, symbols[ playing_field[i][j] ]);
         }
     }
 
@@ -201,28 +204,33 @@ bool piece_fits(Tetromino* piece, bool rotated) {
 
 // Moves the piece in the direction specified by the key parameter.
 // If no key or no movement key was pressed, do nothing.
-void move_if_fits(Tetromino* piece, int key) {
+void move_if_fits(Tetromino* piece, int key, int* held_key) {
     // d
-    if (key == 100) {
+    if (*held_key == 'd' || key == 'd') {
+        *held_key = 'd';
         piece->xpos++;
         if (!piece_fits(piece, false)) piece->xpos--;
     }
     // a
-    else if (key == 97) {
+    else if (*held_key == 'a' || key == 'a') {
+        *held_key = 'a';
         piece->xpos--;
         if (!piece_fits(piece, false)) piece->xpos++;
     }
     // w
-    else if (key == 119) {
+    else if (*held_key == 'w' || key == 'w') {
+        *held_key = 'w';
         piece->rotation++;
         if (!piece_fits(piece, true)) piece->rotation--;
         piece->rotation == piece->rotation % 4;
     }
     // s
-    else if (key == 115) {
+    else if (*held_key == 's' || key == 's') {
+        *held_key = 's';
         piece->ypos++;
         if (!piece_fits(piece, false)) piece->ypos--;
     }
+    else *held_key = -1;
 }
 
 
@@ -239,6 +247,7 @@ int main() {
     srand(time(0));
     bool game_over = false;
     Tetromino* crnt_piece = new_Tetromino();
+    int held_key = -1;
 
     // initialize the console screen and the input source
     initscr();
@@ -252,13 +261,16 @@ int main() {
     while (!game_over) {
         sleep(0.05);
 
-        int c = getch();
-        if (c == 'q') {
+        int key = getch();
+        if (key == -1) {
+            held_key = -1;
+        }
+        if (key == 'q') {
             game_over = true;
         }
-        move_if_fits(crnt_piece, c);
+        move_if_fits(crnt_piece, key, &held_key);
 
-        draw_console(playing_field, crnt_piece);
+        draw_console(crnt_piece);
     }
 
     // close console screen
