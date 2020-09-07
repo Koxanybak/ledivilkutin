@@ -236,6 +236,7 @@ bool piece_fits(Tetromino* piece, bool rotated) {
 
 // Moves the piece in the direction specified by the key parameter.
 // If no key or no movement key was pressed, do nothing.
+// If the piece doesn't fit, return false, otherwise true.
 bool move_if_fits(Tetromino* piece, int key) {
     // d
     if (key == 'd') {
@@ -305,7 +306,9 @@ int main() {
 
     // main game loop
     while (!game_over) {
-        sleep(0.05);
+        // tää usleep ei välttämättä toimi raudalla
+        usleep(50*1000);
+        loop_counter++;
 
         int key = getch();
         if (key == 'q') {
@@ -314,9 +317,28 @@ int main() {
         move_if_fits(crnt_piece, key);
 
         if (loop_counter == 20) {
-            if (move_if_fits(crnt_piece, 's')) {
+            // force the piece down
+            if (!move_if_fits(crnt_piece, 's')) {
+                // embed piece to the field
+                int size = crnt_piece->size;
+                int block_to_embed;
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < size; j++) {
+                        block_to_embed = rotated_block(crnt_piece, i, j);
+                        if (block_to_embed != 0) {
+                            playing_field[crnt_piece->ypos+i][crnt_piece->xpos+j] = block_to_embed;
+                        }
+                    }
+                }
+                // TODO: check for gameover
+                // TODO: check for lines
 
+                // Huom. en oo muuten yhtään varma, pitääkö mun vapauttaa noiden taulukoiden muistit erikseen
+                // Jos pitää ja ei vapauteta, ni sit meiän 8kt täyttyy varmaa aika nopee.
+                free(crnt_piece);
+                crnt_piece = new_Tetromino();
             }
+            loop_counter = 0;
         }
 
         draw_console(crnt_piece);
