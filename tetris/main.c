@@ -236,33 +236,47 @@ bool piece_fits(Tetromino* piece, bool rotated) {
 
 // Moves the piece in the direction specified by the key parameter.
 // If no key or no movement key was pressed, do nothing.
-void move_if_fits(Tetromino* piece, int key, int* held_key) {
+bool move_if_fits(Tetromino* piece, int key) {
     // d
-    if (*held_key == 'd' || key == 'd') {
-        *held_key = 'd';
+    if (key == 'd') {
         piece->xpos++;
-        if (!piece_fits(piece, false)) piece->xpos--;
+        if (!piece_fits(piece, false)) {
+            piece->xpos--;
+            return false;
+        }
+        return true;
     }
     // a
-    else if (*held_key == 'a' || key == 'a') {
-        *held_key = 'a';
+    else if (key == 'a') {
         piece->xpos--;
-        if (!piece_fits(piece, false)) piece->xpos++;
+        if (!piece_fits(piece, false)) {
+            piece->xpos++;
+            return false;
+        }
+        return true;
     }
     // w
-    else if (*held_key == 'w' || key == 'w') {
-        *held_key = 'w';
+    else if (key == 'w') {
         piece->rotation++;
-        if (!piece_fits(piece, true)) piece->rotation--;
-        piece->rotation == piece->rotation % 4;
+        if (!piece_fits(piece, true)) {
+            piece->rotation--;
+            return false;
+        }
+        piece->rotation = piece->rotation % 4;
+        return true;
     }
     // s
-    else if (*held_key == 's' || key == 's') {
-        *held_key = 's';
+    else if (key == 's') {
         piece->ypos++;
-        if (!piece_fits(piece, false)) piece->ypos--;
+        if (!piece_fits(piece, false)) {
+            piece->ypos--;
+            return false;
+        }
+        return true;
     }
-    else *held_key = -1;
+    else {
+        return false;
+    }
 }
 
 
@@ -279,7 +293,7 @@ int main() {
     srand(time(0));
     bool game_over = false;
     Tetromino* crnt_piece = new_Tetromino();
-    int held_key = -1;
+    int loop_counter = 0; // When the counter is at a certain value, force the piece down.
 
     // initialize the console screen and the input source
     initscr();
@@ -294,13 +308,16 @@ int main() {
         sleep(0.05);
 
         int key = getch();
-        if (key == -1) {
-            held_key = -1;
-        }
         if (key == 'q') {
             game_over = true;
         }
-        move_if_fits(crnt_piece, key, &held_key);
+        move_if_fits(crnt_piece, key);
+
+        if (loop_counter == 20) {
+            if (move_if_fits(crnt_piece, 's')) {
+
+            }
+        }
 
         draw_console(crnt_piece);
     }
