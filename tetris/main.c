@@ -330,8 +330,33 @@ int main() {
                         }
                     }
                 }
+                // check for lines
+                for (int i = 0; i < field_height - 1; i++) {
+                    // ignore borders
+                    for (int j = 1; j < field_width - 1; j++) {
+                        if (playing_field[i][j] == 0) {
+                            break;
+                        }
+                        // reached the end of the line with no empty space
+                        if (j == field_width - 2) {
+                            // destroy the row
+                            for (int k = 1; k < field_width - 1; k++) {
+                                playing_field[i][k] = 0;
+                            }
+                            // move rows above down
+                            for (int k = i; k > 0; k--) {
+                                for (int l = 1; l < field_width - 1; l++) {
+                                    playing_field[k][l] = playing_field[k-1][l];
+                                }
+                            }
+                            for (int l = 1; l < field_width - 1; l++) {
+                                playing_field[0][l] = 0;
+                            }
+                        }
+                    }
+                }
+
                 // TODO: check for gameover
-                // TODO: check for lines
 
                 // Huom. en oo muuten yhtään varma, pitääkö mun vapauttaa noiden taulukoiden muistit erikseen
                 // Jos pitää ja ei vapauteta, ni sit meiän 8kt täyttyy varmaa aika nopee.
