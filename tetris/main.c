@@ -334,53 +334,87 @@ int main() {
         if (loop_counter == 20) {
             // force the piece down
             if (!move_if_fits(crnt_piece, 's')) {
-                // embed piece to the field
                 int size = crnt_piece->size;
-                int block_to_embed;
+                int block_to_check; // block to check gameover with or the block to embed to the playing field
+
+                // check for game over
                 for (int i = 0; i < size; i++) {
-                    for (int j = 0; j < size; j++) {
-                        block_to_embed = rotated_block(crnt_piece, i, j);
-                        if (block_to_embed != 0) {
-                            playing_field[crnt_piece->ypos+i][crnt_piece->xpos+j] = block_to_embed;
+                    if (!game_over) {
+                        for (int j = 0; j < size; j++) {
+                            block_to_check = rotated_block(crnt_piece, i, j);
+                            if (block_to_check != 0 && i + crnt_piece->ypos < 0) {
+                                game_over = true;
+                                break;
+                            }
                         }
                     }
+                    else break;
                 }
-                // check for lines
-                for (int i = 0; i < field_height - 1; i++) {
-                    // ignore borders
-                    for (int j = 1; j < field_width - 1; j++) {
-                        if (playing_field[i][j] == 0) {
-                            break;
-                        }
-                        // reached the end of the line with no empty space
-                        if (j == field_width - 2) {
-                            // destroy the row
-                            for (int k = 1; k < field_width - 1; k++) {
-                                playing_field[i][k] = 0;
+
+                if (!game_over) {
+                    // embed piece to the field
+                    for (int i = 0; i < size; i++) {
+                        for (int j = 0; j < size; j++) {
+                            block_to_check = rotated_block(crnt_piece, i, j);
+                            if (block_to_check != 0) {
+                                playing_field[crnt_piece->ypos+i][crnt_piece->xpos+j] = block_to_check;
                             }
-                            // move rows above down
-                            for (int k = i; k > 0; k--) {
+                        }
+                    }
+
+                    // check for lines
+                    for (int i = 0; i < field_height - 1; i++) {
+                        // ignore borders
+                        for (int j = 1; j < field_width - 1; j++) {
+                            if (playing_field[i][j] == 0) {
+                                break;
+                            }
+                            // reached the end of the line with no empty space
+                            if (j == field_width - 2) {
+                                // destroy the row
+                                for (int k = 1; k < field_width - 1; k++) {
+                                    playing_field[i][k] = 0;
+                                }
+                                // move rows above down
+                                for (int k = i; k > 0; k--) {
+                                    for (int l = 1; l < field_width - 1; l++) {
+                                        playing_field[k][l] = playing_field[k-1][l];
+                                    }
+                                }
                                 for (int l = 1; l < field_width - 1; l++) {
-                                    playing_field[k][l] = playing_field[k-1][l];
+                                    playing_field[0][l] = 0;
                                 }
                             }
-                            for (int l = 1; l < field_width - 1; l++) {
-                                playing_field[0][l] = 0;
-                            }
                         }
                     }
+
+                    // Huom. en oo muuten yhtään varma, pitääkö mun vapauttaa noiden taulukoiden muistit erikseen
+                    // Jos pitää ja ei vapauteta, ni sit meiän 8kt täyttyy varmaa aika nopee.
+                    free(crnt_piece);
+                    crnt_piece = new_Tetromino();
+
+                    // check for game over again if the new piece spawn on top of another
+                    size = crnt_piece->size;
+                    int xpos = crnt_piece->xpos;
+                    int ypos = crnt_piece->ypos;
+                    for (int i = 0; i < size; i++) {
+                        if (!game_over) {
+                            for (int j = 0; j < size; j++) {
+                                block_to_check = rotated_block(crnt_piece, i, j);
+                                if (block_to_check != 0 && i + ypos >= 0 && playing_field[i + ypos][j + xpos] != 0) {
+                                    game_over = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else break;
+                    }
                 }
-
-                // TODO: check for gameover
-
-                // Huom. en oo muuten yhtään varma, pitääkö mun vapauttaa noiden taulukoiden muistit erikseen
-                // Jos pitää ja ei vapauteta, ni sit meiän 8kt täyttyy varmaa aika nopee.
-                free(crnt_piece);
-                crnt_piece = new_Tetromino();
             }
             loop_counter = 0;
         }
 
+        // TÄN TILALLE SE FUNKTIO, JOKA PIIRTÄÄ TILAN LEDEILLE
         draw_console(crnt_piece);
     }
 
