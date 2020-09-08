@@ -22,37 +22,37 @@ int playing_field[field_height][field_width];
 
 int tetromino3_shapes[5][piece_size_small][piece_size_small] = {
     {
-        {0,3,3},
-        {0,3,0},
-        {0,3,0},
+        {3,0,0},
+        {3,3,3},
+        {0,0,0},
     },
     {
-        {4,4,0},
-        {0,4,0},
-        {0,4,0},
+        {0,0,4},
+        {4,4,4},
+        {0,0,0},
     },
     {
         {0,5,0},
-        {5,5,0},
-        {0,5,0},
+        {5,5,5},
+        {0,0,0},
     },
     {
-        {0,6,0},
         {6,6,0},
-        {6,0,0},
+        {0,6,6},
+        {0,0,0},
     },
     {
-        {0,7,0},
         {0,7,7},
-        {0,0,7},
+        {7,7,0},
+        {0,0,0},
     },
 };
 int tetromino4_shapes[2][piece_size_big][piece_size_big] = {
     {
-        {0, 0, 1, 0},
-        {0, 0, 1, 0},
-        {0, 0, 1, 0},
-        {0, 0, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {1, 1, 1, 1},
+        {0, 0, 0, 0},
     },
     {
         {0, 0, 0, 0},
@@ -76,11 +76,12 @@ typedef struct tetromino Tetromino;
 // Tetromino constructor
 Tetromino* new_Tetromino() {
     Tetromino* t = malloc(sizeof(Tetromino));
-    t->rotation = rand() % 4;
-    t->ypos = 0;
-    t->xpos = field_width / 2 - 1;
     int shape_num = rand() % 7 + 1;
     t->size = (shape_num == 1 || shape_num == 2) ? piece_size_big : piece_size_small;
+    t->rotation = 0;
+    t->xpos = field_width / 2 - 2;
+
+    // fill shape
     if (t->size == 3) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
@@ -94,6 +95,20 @@ Tetromino* new_Tetromino() {
                 t->shape4[i][j] = tetromino4_shapes[shape_num - 1][i][j];
             }
         }
+    }
+
+    // determine ypos so that the piece spawn completely visible at the top
+    switch (shape_num)
+    {
+    case 1:
+        t->ypos = -2;
+        break;
+    case 2:
+        t->ypos = -1;
+        break;
+    default:
+        t->ypos = 0;
+        break;
     }
     return t;
 }
