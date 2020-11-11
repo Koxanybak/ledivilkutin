@@ -18,27 +18,27 @@
 #define piece_size_big 4
 #define piece_size_small 3
 
-int playing_field[field_height][field_width];
+u_int8_t playing_field[field_height][field_width];
 
-int tetromino3_shapes[5][piece_size_small][piece_size_small] = {
+u_int8_t tetromino3_shapes[5][piece_size_small][piece_size_small] = {
     {
-        {3,0,0},
-        {3,3,3},
+        {1,0,0},
+        {1,1,1},
         {0,0,0},
     },
     {
-        {0,0,4},
-        {4,4,4},
+        {0,0,1},
+        {1,1,1},
         {0,0,0},
     },
     {
-        {0,5,0},
-        {5,5,5},
+        {0,1,0},
+        {1,1,1},
         {0,0,0},
     },
     {
-        {6,6,0},
-        {0,6,6},
+        {1,1,0},
+        {0,1,1},
         {0,0,0},
     },
     {
@@ -47,7 +47,7 @@ int tetromino3_shapes[5][piece_size_small][piece_size_small] = {
         {0,0,0},
     },
 };
-int tetromino4_shapes[2][piece_size_big][piece_size_big] = {
+u_int8_t tetromino4_shapes[2][piece_size_big][piece_size_big] = {
     {
         {0, 0, 0, 0},
         {0, 0, 0, 0},
@@ -56,42 +56,42 @@ int tetromino4_shapes[2][piece_size_big][piece_size_big] = {
     },
     {
         {0, 0, 0, 0},
-        {0, 2, 2, 0},
-        {0, 2, 2, 0},
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
         {0, 0, 0, 0},
     },
 };
 
 // Tetromino definitions
 struct tetromino {
-    int shape4[4][4];
-    int shape3[3][3];
-    int size;
-    int rotation;
-    int ypos;
-    int xpos;
+    u_int8_t shape4[4][4];
+    u_int8_t shape3[3][3];
+    signed char size;
+    u_int8_t rotation;
+    signed char ypos;
+    signed char xpos;
 };
 typedef struct tetromino Tetromino;
 
 // Tetromino constructor
 Tetromino* new_Tetromino() {
     Tetromino* t = malloc(sizeof(Tetromino));
-    int shape_num = rand() % 7 + 1;
+    u_int8_t shape_num = rand() % 7 + 1;
     t->size = (shape_num == 1 || shape_num == 2) ? piece_size_big : piece_size_small;
     t->rotation = 0;
     t->xpos = field_width / 2 - 2;
 
     // fill shape
     if (t->size == 3) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
+        for (signed char i = 0; i < 3; i++) {
+            for (signed char j = 0; j < 3; j++) {
                 t->shape3[i][j] = tetromino3_shapes[shape_num - 3][i][j];
             }
         }
     }
     else {
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
+        for (signed char i = 0; i < 4; i++) {
+            for (signed char j = 0; j < 4; j++) {
                 t->shape4[i][j] = tetromino4_shapes[shape_num - 1][i][j];
             }
         }
@@ -114,8 +114,8 @@ Tetromino* new_Tetromino() {
 }
 
 // Returns the block (0 or 1-7) at the specified location when taking rotation into account.
-int rotated_block(Tetromino* piece, int y, int x) {
-    int sum;
+u_int8_t rotated_block(Tetromino* piece, signed char y, signed char x) {
+    signed char sum;
     switch (piece->rotation % 4) {
         case 0:
             return piece->size == 4 ? piece->shape4[y][x] : piece->shape3[y][x];
@@ -153,16 +153,16 @@ int rotated_block(Tetromino* piece, int y, int x) {
 void draw_console(Tetromino* piece) {
     char symbols[] = " ABCDEFG#"; // The values to be drawn. For example, value 3 get converted to symbols[3] --> C
 
-    for (int i = 0; i < field_height; i++) {
-        for (int j = 0; j < field_width; j++) {
+    for (signed char i = 0; i < field_height; i++) {
+        for (signed char j = 0; j < field_width; j++) {
             mvaddch(offset_y + i, offset_x + j, symbols[ playing_field[i][j] ]);
         }
     }
 
-    int to_draw;
-    int size = piece->size;
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
+    u_int8_t to_draw;
+    signed char size = piece->size;
+    for (signed char i = 0; i < size; i++) {
+        for (signed char j = 0; j < size; j++) {
             to_draw = rotated_block(piece, i, j);
             if (to_draw != 0) mvaddch(offset_y + piece->ypos + i, offset_x + piece->xpos + j, symbols[ to_draw ]);
         }
@@ -171,18 +171,18 @@ void draw_console(Tetromino* piece) {
 
 // Checks if the moved piece fits into the new location.
 bool piece_fits(Tetromino* piece, bool rotated) {
-    int ypos = piece->ypos;
-    int xpos = piece->xpos;
-    int shape_block; // The value of the shape array of the piece
-    int field_block; // The value of the playing_field array
-    int size = piece->size;
+    signed char ypos = piece->ypos;
+    signed char xpos = piece->xpos;
+    u_int8_t shape_block; // The value of the shape array of the piece
+    u_int8_t field_block; // The value of the playing_field array
+    signed char size = piece->size;
 
     // When rotated and the piece collided only with the border,
     // we allow it to rotate but move it so that it's not inside the border if we can.
     if (rotated) {
-        int collided_with_border = -1; // -1: didn't collide with the border, 0: left wall, 1: floor, 2: right wall
-        for (int i = ypos; i < ypos + size; i++) {
-            for (int j = xpos; j < xpos + size; j++) {
+        u_int8_t collided_with_border = 0; // 0: didn't collide with the border, 1: left wall, 2: floor, 3: right wall
+        for (signed char i = ypos; i < ypos + size; i++) {
+            for (signed char j = xpos; j < xpos + size; j++) {
                 // Take rotation into account
                 shape_block = rotated_block(piece, i - ypos, j - xpos);
                 field_block = playing_field[i][j];
@@ -194,9 +194,9 @@ bool piece_fits(Tetromino* piece, bool rotated) {
                     }
                     else {
                         // collided with the border
-                        if (i == field_height - 1) collided_with_border = 1;
-                        else if (j == field_width - 1) collided_with_border = 2;
-                        else if (j == 0) collided_with_border = 0;
+                        if (i == field_height - 1) collided_with_border = 2;
+                        else if (j == field_width - 1) collided_with_border = 3;
+                        else if (j == 0) collided_with_border = 1;
                     }
                 }
             }
@@ -206,23 +206,23 @@ bool piece_fits(Tetromino* piece, bool rotated) {
         // If it then collides with another block, the piece cannot be rotated this
         // way, so return false.
         switch (collided_with_border) {
-            case -1:
-                return true;
             case 0:
+                return true;
+            case 1:
                 piece->xpos++;
                 if (!piece_fits(piece, false)) {
                     piece->xpos--;
                     return false;
                 }
                 else return true;
-            case 1:
+            case 2:
                 piece->ypos--;
                 if (!piece_fits(piece, false)) {
                     piece->ypos++;
                     return false;
                 }
                 else return true;
-            case 2:
+            case 3:
                 piece->xpos--;
                 if (!piece_fits(piece, false)) {
                     piece->xpos++;
@@ -234,8 +234,8 @@ bool piece_fits(Tetromino* piece, bool rotated) {
         }
     }
     else {
-        for (int i = ypos; i < ypos + size; i++) {
-            for (int j = xpos; j < xpos + size; j++) {
+        for (signed char i = ypos; i < ypos + size; i++) {
+            for (signed char j = xpos; j < xpos + size; j++) {
                 shape_block = rotated_block(piece, i - ypos, j - xpos);
                 field_block = playing_field[i][j];
 
@@ -298,8 +298,8 @@ bool move_if_fits(Tetromino* piece, int key) {
 
 int main() {
     // initialize playing field
-    for (int i = 0; i < field_height; i++) {
-        for (int j = 0; j < field_width; j++) {
+    for (signed char i = 0; i < field_height; i++) {
+        for (signed char j = 0; j < field_width; j++) {
             if (i == field_height - 1 || j == 0 || j == field_width - 1) playing_field[i][j] = 8;
             else playing_field[i][j] = 0;
         }
@@ -309,7 +309,7 @@ int main() {
     srand(time(0));
     bool game_over = false;
     Tetromino* crnt_piece = new_Tetromino();
-    int loop_counter = 0; // When the counter is at a certain value, force the piece down.
+    u_int8_t loop_counter = 0; // When the counter is at a certain value, force the piece down.
 
     // initialize the console screen and the input source
     initscr();
@@ -334,13 +334,13 @@ int main() {
         if (loop_counter == 20) {
             // force the piece down
             if (!move_if_fits(crnt_piece, 's')) {
-                int size = crnt_piece->size;
-                int block_to_check; // block to check gameover with or the block to embed to the playing field
+                signed char size = crnt_piece->size;
+                u_int8_t block_to_check; // block to check gameover with or the block to embed to the playing field
 
                 // check for game over
-                for (int i = 0; i < size; i++) {
+                for (signed char i = 0; i < size; i++) {
                     if (!game_over) {
-                        for (int j = 0; j < size; j++) {
+                        for (signed char j = 0; j < size; j++) {
                             block_to_check = rotated_block(crnt_piece, i, j);
                             if (block_to_check != 0 && i + crnt_piece->ypos < 0) {
                                 game_over = true;
@@ -353,8 +353,8 @@ int main() {
 
                 if (!game_over) {
                     // embed piece to the field
-                    for (int i = 0; i < size; i++) {
-                        for (int j = 0; j < size; j++) {
+                    for (signed char i = 0; i < size; i++) {
+                        for (signed char j = 0; j < size; j++) {
                             block_to_check = rotated_block(crnt_piece, i, j);
                             if (block_to_check != 0) {
                                 playing_field[crnt_piece->ypos+i][crnt_piece->xpos+j] = block_to_check;
@@ -363,25 +363,25 @@ int main() {
                     }
 
                     // check for lines
-                    for (int i = 0; i < field_height - 1; i++) {
+                    for (signed char i = 0; i < field_height - 1; i++) {
                         // ignore borders
-                        for (int j = 1; j < field_width - 1; j++) {
+                        for (signed char j = 1; j < field_width - 1; j++) {
                             if (playing_field[i][j] == 0) {
                                 break;
                             }
                             // reached the end of the line with no empty space
                             if (j == field_width - 2) {
                                 // destroy the row
-                                for (int k = 1; k < field_width - 1; k++) {
+                                for (signed char k = 1; k < field_width - 1; k++) {
                                     playing_field[i][k] = 0;
                                 }
                                 // move rows above down
-                                for (int k = i; k > 0; k--) {
+                                for (signed char k = i; k > 0; k--) {
                                     for (int l = 1; l < field_width - 1; l++) {
                                         playing_field[k][l] = playing_field[k-1][l];
                                     }
                                 }
-                                for (int l = 1; l < field_width - 1; l++) {
+                                for (signed char l = 1; l < field_width - 1; l++) {
                                     playing_field[0][l] = 0;
                                 }
                             }
@@ -395,11 +395,11 @@ int main() {
 
                     // check for game over again if the new piece spawn on top of another
                     size = crnt_piece->size;
-                    int xpos = crnt_piece->xpos;
-                    int ypos = crnt_piece->ypos;
-                    for (int i = 0; i < size; i++) {
+                    signed char xpos = crnt_piece->xpos;
+                    signed char ypos = crnt_piece->ypos;
+                    for (signed char i = 0; i < size; i++) {
                         if (!game_over) {
-                            for (int j = 0; j < size; j++) {
+                            for (signed char j = 0; j < size; j++) {
                                 block_to_check = rotated_block(crnt_piece, i, j);
                                 if (block_to_check != 0 && i + ypos >= 0 && playing_field[i + ypos][j + xpos] != 0) {
                                     game_over = true;
